@@ -11,10 +11,14 @@ int main(){
 	mlm_client_set_producer(myProducer,stream);
 
 	// send
-	for (int i = 0; i < 1000; i = i + 1){
-		mlm_client_sendx(myProducer,"prihraj","prohraj","prihraj","pozde", NULL);	
-		zclock_sleep(1000);
-			
-	}
+	while (!zsys_interrupted){
+		for (int i = 0; i < 1000; i = i + 1){
+			mlm_client_sendx(myProducer,"prihraj","prohraj","prihraj","pozde", NULL);	
+			zclock_sleep(1000);
+		
+		}
+	
+
 	mlm_client_destroy(&myProducer);
+	}
 }
