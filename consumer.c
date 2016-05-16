@@ -17,6 +17,10 @@ int main () {
 
     while (!zsys_interrupted) {
         zmsg_t *msg = mlm_client_recv (client);
+
+        if (!msg)
+            break;
+
         zmsg_print (msg);
         zmsg_destroy (&msg);
     }
