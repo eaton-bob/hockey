@@ -9,7 +9,7 @@ int main () {
     zactor_t *server = zactor_new (mlm_server, "Malamute");
     zstr_sendx (server, "BIND", BROKER_ENDPOINT, NULL);
 
-    
+
     //client part
     mlm_client_t *client = mlm_client_new ();
     mlm_client_connect (client, CLIENT_ENDPOINT, 5000, "consumer");
@@ -29,6 +29,5 @@ int main () {
     //client part END
 
     zactor_destroy (&server);
-
 
 }
