@@ -58,6 +58,10 @@ int main () {
         if (!msg)
             break;
 
+        /**
+         * HINT - see zmsg_popstr and zstr_free to unpack the message
+         */
+
         zmsg_print (msg);
         zmsg_destroy (&msg);
     }
@@ -65,5 +69,16 @@ int main () {
     mlm_client_destroy (&consumer);
     zactor_destroy (&producer);
     zactor_destroy (&server);
+
+    /**
+     * print number of distinc devices here
+     * HINT: the program never ends, type Ctrl+C to break the producer/consumer and get the result
+     *       alternativelly you might want to add counter, so both will break up later
+     * HINT: take a look on zhash class, which will help you to get the result
+     *
+     * zhash_t *count = zhash_new ();
+     * zhash_autofree (count);
+     *
+     */
 
 }
