@@ -7,7 +7,6 @@ static const char *BROKER_ENDPOINT = "tcp://*:7042";
 int main () {
 
     zactor_t *server = zactor_new (mlm_server, "Malamute");
-    zstr_sendx (server, "VERBOSE", NULL);
     zstr_sendx (server, "BIND", BROKER_ENDPOINT, NULL);
 
     
