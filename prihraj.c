@@ -17,8 +17,6 @@ int main(){
 			zclock_sleep(1000);
 		
 		}
-	
-
 	mlm_client_destroy(&myProducer);
 	}
 }
