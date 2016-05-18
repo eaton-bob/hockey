@@ -1,4 +1,4 @@
 #!/bin/sh
 
-gcc -std=c99 consumer.c -lmlm -lczmq -o consumer
-gcc -std=c99 prihraj.c -lmlm -lczmq -o prihraj
+set -x
+gcc -std=c99 -D_GNU_SOURCE count.c -lmlm -lczmq -o count && ./count
