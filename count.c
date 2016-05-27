@@ -53,26 +53,46 @@ device_print (device_t *self){
   printf("UPS1: %i \n UPS2: %i \n EPDU1: %i \n EPDU2: %i \n EPDU3: %i \n", self -> ups1c, self -> ups2c, self -> epdu1c, self -> epdu2c, self -> epdu3c);
 }
 */
+
+static void
+s_free (void **x_p) {
+    if (*x_p) {
+        free ((uint32_t*) *x_p);
+        *x_p = NULL;
+    }
+}
+
 void device_test ()
 {
     //zhashx example
     zhashx_t * device_map = zhashx_new ();
-    zhashx_update (device_map, "UPS1", "");
-    zhashx_update (device_map, "UPS2", "");
-    zhashx_update (device_map, "UPS3", "");
-    zhashx_update (device_map, "UPS3", "");
-    zhashx_update (device_map, "UPS3", "");
-    zhashx_update (device_map, "UPS3", "");
-    zhashx_update (device_map, "UPS3", "");
+    zhashx_set_destructor (device_map, s_free);
+
+    uint32_t *count_p = (uint32_t*) malloc (sizeof (uint32_t));
+    *count_p = 42;
+
+    zhashx_update (device_map, "UPS1", (void*) count_p);
+    void *value_p = zhashx_lookup (device_map, "UPS1");
+    uint32_t *uvalue_p = (uint32_t*) zhashx_lookup (device_map, "UPS1");
+
+    if (value_p)
+        zsys_info ("value=%"PRIu32, *(uint32_t*)value_p);
+
+    if (uvalue_p)
+        zsys_info ("uvalue=%"PRIu32, *uvalue_p);
+
+    *uvalue_p += 1;
+    if (uvalue_p)
+        zsys_info ("uvalue=%"PRIu32, *uvalue_p);
 
     zsys_info ("\t device _test result=%zu", zhashx_size (device_map));
 
     zsys_debug ("device_map:");
     for (void *it = zhashx_first (device_map); //it ..iterace
-	 it != NULL;                  // dokud neni null        
-	 it = zhashx_next (device_map)) // dalsi
+               it != NULL;                  // dokud neni null        
+	           it = zhashx_next (device_map)) // dalsi
     {
-        zsys_debug ("\t%s", zhashx_cursor (device_map));
+        zsys_debug ("\t%s : %"PRIu32, zhashx_cursor (device_map), *(uint32_t*) it);
     }
     
     zhashx_destroy (&device_map);
