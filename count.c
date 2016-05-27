@@ -7,6 +7,70 @@ static const char *STREAM = "HOCKEY";
 
 static const char *DEVICES[] = {"UPS1", "UPS2", "EPDU1", "EPDU2", "EPDU3"};
 
+typedef struct _device_t{
+  uint64_t ups1c;
+  uint64_t ups2c;
+  uint64_t epdu1c;
+  uint64_t epdu2c;
+  uint64_t epdu3c;
+} device_t;
+
+
+device_t * 
+device_new()
+{
+  device_t *self = (device_t *) zmalloc (1 * sizeof(device_t));
+  assert(self);
+  //self -> ups1c = ups1c;
+  return self;
+}
+
+void
+count_up (device_t *self, char *device){
+  //assert(self);
+  int temp;
+
+  if (streq(device,"UPS1")) {
+    temp = self -> ups1c;
+    self -> ups1c = temp + 1;
+  }
+  if (streq(device,"UPS2")) {
+    temp = self -> ups2c;
+    self -> ups2c = temp + 1;
+  }
+  if (streq(device,"EPDU1")) {
+    temp = self -> epdu1c;
+    self -> epdu1c = temp + 1;
+  }
+
+  if (streq(device,"EPDU2")) {
+    temp = self -> epdu2c;
+    self -> epdu2c = temp + 1;
+  }
+
+  if (streq(device,"EPDU3")) {
+    temp = self -> epdu3c;
+    self -> epdu3c = temp + 1;
+  }
+
+}
+
+void 
+device_destroy(device_t **self_p){
+  assert(self_p);
+  if (*self_p){
+    device_t * self = *self_p;
+    free(self);
+    *self_p = NULL;
+  }
+}
+
+void
+print_count(device_t *self){
+  assert(self);
+  printf("UPS1: %i \n UPS2: %i \n EPDU1: %i \n EPDU2: %i \n EPDU3: %i \n", self -> ups1c, self -> ups2c, self -> epdu1c, self -> epdu2c, self -> epdu3c);
+}
+
 static void
 s_producer (zsock_t *pipe, void *args)
 {
@@ -16,6 +80,7 @@ s_producer (zsock_t *pipe, void *args)
     mlm_client_set_producer (producer, STREAM);
 
     zsock_signal (pipe, 0);
+
     while (!zsys_interrupted)
     {
         zmsg_t *msg = zmsg_new ();
@@ -26,15 +91,14 @@ s_producer (zsock_t *pipe, void *args)
 
         char *subject;
         asprintf (&subject, "realpower@%s", device);
-		mlm_client_send (producer, subject, &msg);
+	mlm_client_send (producer, subject, &msg);
         zstr_free (&subject);
-		zclock_sleep (1000);
-    }
+	zclock_sleep (1000);
+    } //while
 
     mlm_client_destroy (&producer);
 
-}
-
+} // producer_s
 
 int main () {
 
@@ -52,23 +116,38 @@ int main () {
     mlm_client_connect (consumer, ENDPOINT, 5000, "consumer");
     mlm_client_set_consumer (consumer, STREAM, ".*");
 
+    device_t *pocet = device_new();
+
     while (!zsys_interrupted) {
         zmsg_t *msg = mlm_client_recv (consumer);
 
         if (!msg)
             break;
 
-        /**
-         * HINT - see zmsg_popstr and zstr_free to unpack the message
-         */
+	zmsg_print(msg);
 
-        zmsg_print (msg);
+	// split msg 
+	char *pwrval = zmsg_popstr(msg);
+	char *pwrstr = zmsg_popstr(msg);
+	char *dev = zmsg_popstr(msg);
+	
+	count_up(pocet,dev);
+
+	zstr_free(&dev);
+	zstr_free(&pwrstr);
+	zstr_free(&pwrval);
         zmsg_destroy (&msg);
-    }
 
+    } //while
+
+    print_count(pocet);
+
+    device_destroy(&pocet);
     mlm_client_destroy (&consumer);
     zactor_destroy (&producer);
     zactor_destroy (&server);
+
+} //main
 
     /**
      * print number of distinc devices here
@@ -81,4 +160,6 @@ int main () {
      *
      */
 
-}
+        /**
+         * HINT - see zmsg_popstr and zstr_free to unpack the message
+         */
