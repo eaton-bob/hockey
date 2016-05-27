@@ -71,6 +71,31 @@ device_print (device_t *self){
   printf("UPS1: %i \n UPS2: %i \n EPDU1: %i \n EPDU2: %i \n EPDU3: %i \n", self -> ups1c, self -> ups2c, self -> epdu1c, self -> epdu2c, self -> epdu3c);
 }
 
+void device_test ()
+{
+    //zhashx example
+    zhashx_t * device_map = zhashx_new ();
+    zhashx_update (device_map, "UPS1", "");
+    zhashx_update (device_map, "UPS2", "");
+    zhashx_update (device_map, "UPS3", "");
+    zhashx_update (device_map, "UPS3", "");
+    zhashx_update (device_map, "UPS3", "");
+    zhashx_update (device_map, "UPS3", "");
+    zhashx_update (device_map, "UPS3", "");
+
+    zsys_info ("result=%zu", zhashx_size (device_map));
+
+    zsys_debug ("device_map:");
+    for (void *it = zhashx_first (device_map);
+               it != NULL;
+               it = zhashx_next (device_map))
+    {
+        zsys_debug ("\t%s", zhashx_cursor (device_map));
+    }
+    
+    zhashx_destroy (&device_map);
+}
+
 static void
 s_producer (zsock_t *pipe, void *args)
 {
@@ -102,6 +127,10 @@ s_producer (zsock_t *pipe, void *args)
 
 int main () {
 
+    puts ("Running unit tests");
+    device_test ();
+    return 0;
+    
     srandom (time (NULL));
 
     // create Malamute broker
