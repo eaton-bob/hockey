@@ -26,7 +26,7 @@ device_new()
 }
 
 void
-count_up (device_t *self, char *device){
+device_count_up (device_t *self, char *device){
   //assert(self);
   int temp;
 
@@ -66,7 +66,7 @@ device_destroy(device_t **self_p){
 }
 
 void
-print_count(device_t *self){
+device_print (device_t *self){
   assert(self);
   printf("UPS1: %i \n UPS2: %i \n EPDU1: %i \n EPDU2: %i \n EPDU3: %i \n", self -> ups1c, self -> ups2c, self -> epdu1c, self -> epdu2c, self -> epdu3c);
 }
@@ -131,7 +131,7 @@ int main () {
 	char *pwrstr = zmsg_popstr(msg);
 	char *dev = zmsg_popstr(msg);
 	
-	count_up(pocet,dev);
+	device_count_up(pocet,dev);
 
 	zstr_free(&dev);
 	zstr_free(&pwrstr);
@@ -140,7 +140,7 @@ int main () {
 
     } //while
 
-    print_count(pocet);
+    device_print(pocet);
 
     device_destroy(&pocet);
     mlm_client_destroy (&consumer);
