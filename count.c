@@ -5,14 +5,12 @@
 static const char *ENDPOINT = "inproc://@/eaton-bob-counter";
 static const char *STREAM = "HOCKEY";
 
-static const char *DEVICES[] = {"UPS1", "UPS2", "EPDU1", "EPDU2", "EPDU3"};
+#define COUNT 5
+static const char *DEVICES[COUNT] = {"UPS1", "UPS2", "EPDU1", "EPDU2", "EPDU3"};
 
 typedef struct _device_t{
-  uint64_t ups1c;
-  uint64_t ups2c;
-  uint64_t epdu1c;
-  uint64_t epdu2c;
-  uint64_t epdu3c;
+  zhashx_t *device_hash; 
+
 } device_t;
 
 
@@ -21,56 +19,40 @@ device_new()
 {
   device_t *self = (device_t *) zmalloc (1 * sizeof(device_t));
   assert(self);
-  //self -> ups1c = ups1c;
+  self -> device_hash =  zhashx_new();
+  assert(self -> device_hash);
   return self;
 }
 
 void
 device_count_up (device_t *self, char *device){
-  //assert(self);
-  int temp;
+    assert(self);
+    zhashx_update (self->device_hash, device , "");
 
-  if (streq(device,"UPS1")) {
-    temp = self -> ups1c;
-    self -> ups1c = temp + 1;
-  }
-  if (streq(device,"UPS2")) {
-    temp = self -> ups2c;
-    self -> ups2c = temp + 1;
-  }
-  if (streq(device,"EPDU1")) {
-    temp = self -> epdu1c;
-    self -> epdu1c = temp + 1;
-  }
-
-  if (streq(device,"EPDU2")) {
-    temp = self -> epdu2c;
-    self -> epdu2c = temp + 1;
-  }
-
-  if (streq(device,"EPDU3")) {
-    temp = self -> epdu3c;
-    self -> epdu3c = temp + 1;
-  }
+    zsys_info ("result=%zu", zhashx_size (self->device_hash));
 
 }
 
 void 
 device_destroy(device_t **self_p){
+
   assert(self_p);
+  
   if (*self_p){
     device_t * self = *self_p;
+    zhashx_destroy(&self->device_hash);
     free(self);
     *self_p = NULL;
   }
+  
 }
 
-void
+/* void
 device_print (device_t *self){
   assert(self);
   printf("UPS1: %i \n UPS2: %i \n EPDU1: %i \n EPDU2: %i \n EPDU3: %i \n", self -> ups1c, self -> ups2c, self -> epdu1c, self -> epdu2c, self -> epdu3c);
 }
-
+*/
 void device_test ()
 {
     //zhashx example
@@ -83,12 +65,12 @@ void device_test ()
     zhashx_update (device_map, "UPS3", "");
     zhashx_update (device_map, "UPS3", "");
 
-    zsys_info ("result=%zu", zhashx_size (device_map));
+    zsys_info ("\t device _test result=%zu", zhashx_size (device_map));
 
     zsys_debug ("device_map:");
-    for (void *it = zhashx_first (device_map);
-               it != NULL;
-               it = zhashx_next (device_map))
+    for (void *it = zhashx_first (device_map); //it ..iterace
+	 it != NULL;                  // dokud neni null        
+	 it = zhashx_next (device_map)) // dalsi
     {
         zsys_debug ("\t%s", zhashx_cursor (device_map));
     }
@@ -109,7 +91,7 @@ s_producer (zsock_t *pipe, void *args)
     while (!zsys_interrupted)
     {
         zmsg_t *msg = zmsg_new ();
-        const char *device = DEVICES [random () % 4];
+        const char *device = DEVICES [random () % COUNT];
         zmsg_pushstr (msg, device);                          // name of device
         zmsg_pushstr (msg, "realpower");                     // type of metric
         zmsg_pushstrf (msg, "%"PRIu32, (uint32_t) random () % 100); // value
@@ -129,7 +111,7 @@ int main () {
 
     puts ("Running unit tests");
     device_test ();
-    return 0;
+    //    return 0;
     
     srandom (time (NULL));
 
@@ -169,7 +151,7 @@ int main () {
 
     } //while
 
-    device_print(pocet);
+    //    device_print(pocet);
 
     device_destroy(&pocet);
     mlm_client_destroy (&consumer);
