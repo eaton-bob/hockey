@@ -6,10 +6,10 @@ static const char *ENDPOINT = "inproc://@/eaton-bob-counter";
 static const char *STREAM = "HOCKEY";
 
 #define COUNT 5
-static const char *DEVICES[COUNT] = {"UPS1", "UPS2", "EPDU1", "EPDU2", "EPDU3"};
+static const char *DEVICES [COUNT] = {"UPS1", "UPS2", "EPDU1", "EPDU2", "EPDU3"};
 
 typedef struct _device_t{
-  zhashx_t *device_hash; 
+  zhashx_t *device_zhash; 
 
 } device_t;
 
@@ -19,17 +19,17 @@ device_new()
 {
   device_t *self = (device_t *) zmalloc (1 * sizeof(device_t));
   assert(self);
-  self -> device_hash =  zhashx_new();
-  assert(self -> device_hash);
+  self -> device_zhash =  zhashx_new();
+  assert(self -> device_zhash);
   return self;
 }
 
 void
 device_count_up (device_t *self, char *device){
     assert(self);
-    zhashx_update (self->device_hash, device , "");
+    zhashx_update (self->device_zhash, device , "");
 
-    zsys_info ("result=%zu", zhashx_size (self->device_hash));
+    zsys_info ("result=%zu", zhashx_size (self->device_zhash));
 
 }
 
@@ -40,19 +40,12 @@ device_destroy(device_t **self_p){
   
   if (*self_p){
     device_t * self = *self_p;
-    zhashx_destroy(&self->device_hash);
+    zhashx_destroy(&self->device_zhash);
     free(self);
     *self_p = NULL;
   }
   
 }
-
-/* void
-device_print (device_t *self){
-  assert(self);
-  printf("UPS1: %i \n UPS2: %i \n EPDU1: %i \n EPDU2: %i \n EPDU3: %i \n", self -> ups1c, self -> ups2c, self -> epdu1c, self -> epdu2c, self -> epdu3c);
-}
-*/
 
 static void
 s_free (void **x_p) {
@@ -62,41 +55,44 @@ s_free (void **x_p) {
     }
 }
 
-void device_test ()
+void device_test (zhashx_t *device_map, char *dev)
 {
-    //zhashx example
-    zhashx_t * device_map = zhashx_new ();
-    zhashx_set_destructor (device_map, s_free);
+    
+    //zhashx_update (device_map, dev, (void*) count_p);
+    //void *value_p = zhashx_lookup (device_map, dev);
 
-    uint32_t *count_p = (uint32_t*) malloc (sizeof (uint32_t));
-    *count_p = 42;
+    uint32_t *uvalue_p = (uint32_t*) zhashx_lookup (device_map, dev);
 
-    zhashx_update (device_map, "UPS1", (void*) count_p);
-    void *value_p = zhashx_lookup (device_map, "UPS1");
-    uint32_t *uvalue_p = (uint32_t*) zhashx_lookup (device_map, "UPS1");
+    
+    zsys_debug("device: %s", dev);
 
-    if (value_p)
-        zsys_info ("value=%"PRIu32, *(uint32_t*)value_p);
+    // add
+    if (uvalue_p){
+        *uvalue_p += 1;
+        zhashx_update (device_map, dev, (void*) uvalue_p);
+        zsys_info ("uvalue_p (if): -->, uvalue_p=%"PRIu32, *uvalue_p);
+    }
+    else {
+        uint32_t *count_p = (uint32_t*) malloc (sizeof (uint32_t));
+        *count_p = 1;
 
-    if (uvalue_p)
-        zsys_info ("uvalue=%"PRIu32, *uvalue_p);
+        zhashx_update (device_map, dev, (void*) count_p);
+	uint32_t *uvalue_p = (uint32_t*) zhashx_lookup (device_map, dev);
 
-    *uvalue_p += 1;
-    if (uvalue_p)
-        zsys_info ("uvalue=%"PRIu32, *uvalue_p);
-
-    zsys_info ("\t device _test result=%zu", zhashx_size (device_map));
-
-    zsys_debug ("device_map:");
+	zsys_info ("uvalue_p (else): -->, uvalue_p=%"PRIu32, *uvalue_p);
+    }      
+    
+    /*
     for (void *it = zhashx_first (device_map); //it ..iterace
                it != NULL;                  // dokud neni null        
-	           it = zhashx_next (device_map)) // dalsi
-    {
-        zsys_debug ("\t%s : %"PRIu32, zhashx_cursor (device_map), *(uint32_t*) it);
-    }
+	       it = zhashx_next (device_map)) // dalsi
+      {
+       zsys_debug ("zhash_cursor --> \t%s : %"PRIu32, zhashx_cursor (device_map), *(uint32_t*) it);
+       }*/
     
-    zhashx_destroy (&device_map);
+
 }
+   
 
 static void
 s_producer (zsock_t *pipe, void *args)
@@ -130,7 +126,7 @@ s_producer (zsock_t *pipe, void *args)
 int main () {
 
     puts ("Running unit tests");
-    device_test ();
+    //device_test ();
     //    return 0;
     
     srandom (time (NULL));
@@ -149,6 +145,9 @@ int main () {
 
     device_t *pocet = device_new();
 
+    zhashx_t * device_map = zhashx_new ();
+    zhashx_set_destructor (device_map, s_free);
+
     while (!zsys_interrupted) {
         zmsg_t *msg = mlm_client_recv (consumer);
 
@@ -161,7 +160,9 @@ int main () {
 	char *pwrval = zmsg_popstr(msg);
 	char *pwrstr = zmsg_popstr(msg);
 	char *dev = zmsg_popstr(msg);
-	
+
+	device_test(device_map,dev);
+
 	device_count_up(pocet,dev);
 
 	zstr_free(&dev);
@@ -171,9 +172,9 @@ int main () {
 
     } //while
 
-    //    device_print(pocet);
-
+    zhashx_destroy (&device_map);  
     device_destroy(&pocet);
+
     mlm_client_destroy (&consumer);
     zactor_destroy (&producer);
     zactor_destroy (&server);
